@@ -93,9 +93,50 @@
   .tabbar button{flex:1; background:var(--panel2); border:1px solid var(--line); color:var(--muted); border-radius:10px; padding:10px; font-size:13px; font-weight:600; cursor:pointer;}
   .tabbar button.active{background:var(--accent); color:#04283a; border-color:var(--accent);}
   .tabpage{display:none;} .tabpage.active{display:block;}
+  /* passcode gate */
+  #gate{position:fixed; inset:0; z-index:100; background:var(--bg); display:flex; align-items:center; justify-content:center; padding:24px;}
+  #gate .box{width:100%; max-width:340px; text-align:center;}
+  #gate h2{font-size:18px; margin:0 0 4px;}
+  #gate p{font-size:12px; color:var(--muted); margin:0 0 18px;}
+  #gate input{width:100%; background:var(--panel2); border:1px solid var(--line); color:var(--text); border-radius:10px; padding:14px; font-size:18px; text-align:center; letter-spacing:.2em;}
+  #gate .err{color:var(--bad); font-size:13px; min-height:20px; margin-top:10px;}
+  body.locked{overflow:hidden;}
 </style>
 </head>
-<body>
+<body class="locked">
+
+<!-- パスコード保護（クライアント側／簡易・抑止用）。コード自体は埋め込まずSHA-256で照合 -->
+<div id="gate">
+  <div class="box">
+    <h2>🔒 物件資料スキャナー</h2>
+    <p>関係者用です。パスコードを入力してください。</p>
+    <input id="gatePass" type="password" inputmode="numeric" placeholder="パスコード" autocomplete="off">
+    <button class="btn" id="gateBtn" style="margin-top:14px">入る</button>
+    <div class="err" id="gateErr"></div>
+  </div>
+</div>
+<script>
+(function(){
+  // 許可パスコードのSHA-256（平文は保存しない）。変更依頼はいつでもどうぞ。
+  const PASS_HASH = "e627fcbe79426c3869ff90b262972db942cb3b53cf15e250d41b1b46536d1f84";
+  const KEY = "bukken-scanner-unlocked";
+  async function sha256(s){
+    const buf = await crypto.subtle.digest("SHA-256", new TextEncoder().encode(s));
+    return [...new Uint8Array(buf)].map(b=>b.toString(16).padStart(2,"0")).join("");
+  }
+  function unlock(){ try{ sessionStorage.setItem(KEY,"1"); }catch(e){} document.getElementById("gate").style.display="none"; document.body.classList.remove("locked"); }
+  try{ if(sessionStorage.getItem(KEY)==="1") unlock(); }catch(e){}
+  const inp=document.getElementById("gatePass"), btn=document.getElementById("gateBtn"), err=document.getElementById("gateErr");
+  async function tryUnlock(){
+    const h = await sha256(inp.value.trim());
+    if(h === PASS_HASH){ err.textContent=""; unlock(); }
+    else { err.textContent="パスコードが違います。"; inp.value=""; inp.focus(); }
+  }
+  btn.addEventListener("click", tryUnlock);
+  inp.addEventListener("keydown", e=>{ if(e.key==="Enter") tryUnlock(); });
+})();
+</script>
+
 <header>
   <div>
     <h1>物件資料スキャナー</h1>
