@@ -51,7 +51,9 @@
   .res-left{min-width:0;}
   .res-label{font-size:10px;color:var(--muted);letter-spacing:.08em;}
   .res-prop{font-size:20px;font-weight:800;line-height:1.2;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
-  .res-doc{font-size:14px;font-weight:700;color:var(--accent);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+  .res-no{font-size:12px;font-weight:800;color:var(--warn);letter-spacing:.03em;}
+  .res-addr{font-size:12px;color:#cbd5e1;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+  .res-doc{font-size:14px;font-weight:700;color:var(--accent);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;margin-top:2px;}
   .res-right{flex:0 0 auto;text-align:right;}
   .conf{display:inline-block;font-size:11px;padding:3px 9px;border-radius:99px;font-weight:700;}
   .conf.high{background:rgba(34,197,94,.2);color:var(--good);}
@@ -157,7 +159,9 @@
       <div class="res-line">
         <div class="res-left">
           <div class="res-label" id="rLabel">推測</div>
+          <div class="res-no" id="rNo"></div>
           <div class="res-prop" id="rProp">—</div>
+          <div class="res-addr" id="rAddr"></div>
           <div class="res-doc" id="rDoc">—</div>
         </div>
         <div class="res-right"><span class="conf" id="rConf"></span></div>
@@ -245,7 +249,7 @@
 const $=id=>document.getElementById(id);
 
 /* ---------- 既定データ ---------- */
-const DEFAULT_PROPS=[{name:"サンプル物件",keywords:"サンプル物件",learned:{}}];
+const DEFAULT_PROPS=[{no:"",name:"サンプル物件",addr:"",keywords:"サンプル物件",learned:{}}];
 const DEFAULT_DOCS=[
   {name:"マイソク／物件概要書",keywords:"マイソク, 物件概要, 販売図面, 表面利回り, 満室想定",learned:{}},
   {name:"レントロール",keywords:"レントロール, 賃料明細, 入居状況, 契約賃料",learned:{}},
@@ -259,7 +263,8 @@ const DEFAULT_DOCS=[
   {name:"固定資産税関係",keywords:"固定資産, 評価証明, 公課証明, 課税明細, 名寄帳",learned:{}},
 ];
 const STORE_KEY="bukken-scanner-v2";
-function loadData(){try{const raw=localStorage.getItem(STORE_KEY);if(raw){const d=JSON.parse(raw);if(d.props&&d.docs){d.props.forEach(p=>p.learned=p.learned||{});d.docs.forEach(p=>p.learned=p.learned||{});return d;}}}catch(e){}return{props:JSON.parse(JSON.stringify(DEFAULT_PROPS)),docs:JSON.parse(JSON.stringify(DEFAULT_DOCS))};}
+function migrate(d){d.props.forEach(p=>{p.learned=p.learned||{};p.no=p.no||"";p.addr=p.addr||"";});d.docs.forEach(p=>p.learned=p.learned||{});return d;}
+function loadData(){try{const raw=localStorage.getItem(STORE_KEY);if(raw){const d=JSON.parse(raw);if(d.props&&d.docs)return migrate(d);}}catch(e){}return{props:JSON.parse(JSON.stringify(DEFAULT_PROPS)),docs:JSON.parse(JSON.stringify(DEFAULT_DOCS))};}
 function saveData(){try{localStorage.setItem(STORE_KEY,JSON.stringify(state));}catch(e){}}
 let state=loadData();
 
@@ -275,7 +280,7 @@ function fuzzySim(norm,kw){if(!kw||kw.length<2)return 0;if(norm.includes(kw))ret
 function scoreItems(text,items){
   const norm=normalizeText(text);const idf=computeIDF(items);
   const res=items.map((it,idx)=>{let score=0;const hits=[];const seen=new Set();
-    const kws=splitKeywords(it.keywords);if(it.name)kws.push(it.name);
+    const kws=splitKeywords(it.keywords);if(it.name)kws.push(it.name);if(it.no)kws.push(it.no);if(it.addr)splitKeywords(it.addr).forEach(a=>kws.push(a));
     for(const kw of kws){const nk=normalizeText(kw);if(nk.length<2||seen.has(nk))continue;seen.add(nk);
       const sim=fuzzySim(norm,nk);
       if(sim>=1){score+=nk.length*3;hits.push(kw);}
@@ -396,8 +401,11 @@ function evaluateAndShow(text,live){
   const conf=confidenceOf(props);
   resultOverlay.style.display='block';
   const noInfo=(props[0]?.score||0)<=0;
+  const tp=(!noInfo&&props[0])?state.props[props[0].idx]:null;
   $('rLabel').textContent=(conf==='high')?"判別":"推測";
-  $('rProp').textContent=noInfo?"手がかり不足":(props[0]?props[0].name:"—");
+  $('rNo').textContent=tp&&tp.no?tp.no:"";
+  $('rProp').textContent=noInfo?"手がかり不足":(tp?tp.name:"—");
+  $('rAddr').textContent=tp&&tp.addr?tp.addr:"";
   $('rDoc').textContent=(docs[0]?.score||0)>0?docs[0].name:"資料種別 不明";
   const ce=$('rConf');ce.className="conf "+conf;
   ce.textContent={high:"確度 高",mid:"確度 中",low:"確度 低",none:"要・学習"}[conf];
@@ -412,7 +420,7 @@ $('openFix').onclick=openFix;$('fixCancel').onclick=closeFix;fixOverlay.onclick=
 function fillSel(sel,items,idx,kind){sel.innerHTML=`<option value="-1">（${kind}：該当なし）</option>`+items.map((it,i)=>`<option value="${i}">${escapeHtml(it.name||'(未設定)')}</option>`).join('');sel.value=String(idx);}
 $('learnBtn').onclick=()=>{
   const pi=parseInt($('fixProp').value,10),di=parseInt($('fixDoc').value,10);const done=[];
-  if(pi>=0&&state.props[pi]){learnInto(state.props[pi],lastText);done.push("物件「"+state.props[pi].name+"」");$('rProp').textContent=state.props[pi].name;$('rLabel').textContent="判別";}
+  if(pi>=0&&state.props[pi]){const p=state.props[pi];learnInto(p,lastText);done.push("物件「"+p.name+"」");$('rNo').textContent=p.no||"";$('rProp').textContent=p.name;$('rAddr').textContent=p.addr||"";$('rLabel').textContent="判別";}
   if(di>=0&&state.docs[di]){learnInto(state.docs[di],lastText);done.push("資料「"+state.docs[di].name+"」");$('rDoc').textContent=state.docs[di].name;}
   saveData();closeFix();statusEl.textContent=done.length?("学習しました："+done.join(" / ")):"学習対象が未選択です。";
 };
@@ -431,19 +439,29 @@ function renderSettings(){
 }
 function itemRow(kind,obj,i){
   const w=document.createElement('div');w.className="item";
+  const propFields=kind==='prop'?`
+    <div class="lbl">物件番号</div>
+    <input data-k="no" value="${escapeHtml(obj.no||'')}" placeholder="例）#40-41">
+    <div class="lbl">住所・地番</div>
+    <input data-k="addr" value="${escapeHtml(obj.addr||'')}" placeholder="例）北斗市七重浜 地番123-4">`:'';
   w.innerHTML=`<div class="lbl">${kind==='prop'?'物件名':'資料の種類'}</div>
     <input data-k="name" value="${escapeHtml(obj.name)}" placeholder="${kind==='prop'?'例）○○マンション':'例）レントロール'}">
+    ${propFields}
     <div class="lbl">見分けるキーワード（カンマ区切り）</div>
     <textarea data-k="keywords" placeholder="資料に書かれていそうな語">${escapeHtml(obj.keywords||'')}</textarea>
     <div class="meta">🧠 学習済みの語：${learnedCount(obj)}件</div>
     <button class="clr">学習を消去</button><button class="del">項目を削除</button>`;
-  w.querySelector('input').addEventListener('input',e=>obj.name=e.target.value);
-  w.querySelector('textarea').addEventListener('input',e=>obj.keywords=e.target.value);
+  w.querySelector('[data-k=name]').addEventListener('input',e=>obj.name=e.target.value);
+  if(kind==='prop'){
+    w.querySelector('[data-k=no]').addEventListener('input',e=>obj.no=e.target.value);
+    w.querySelector('[data-k=addr]').addEventListener('input',e=>obj.addr=e.target.value);
+  }
+  w.querySelector('[data-k=keywords]').addEventListener('input',e=>obj.keywords=e.target.value);
   w.querySelector('.clr').onclick=()=>{obj.learned={};saveData();renderSettings();};
   w.querySelector('.del').onclick=()=>{(kind==='prop'?state.props:state.docs).splice(i,1);saveData();renderSettings();};
   return w;
 }
-$('addProp').onclick=()=>{state.props.push({name:"",keywords:"",learned:{}});saveData();renderSettings();};
+$('addProp').onclick=()=>{state.props.push({no:"",name:"",addr:"",keywords:"",learned:{}});saveData();renderSettings();};
 $('addDoc').onclick=()=>{state.docs.push({name:"",keywords:"",learned:{}});saveData();renderSettings();};
 $('trainRun').onclick=async()=>{
   const pi=parseInt($('trainProp').value,10),di=parseInt($('trainDoc').value,10);
@@ -458,7 +476,7 @@ $('trainRun').onclick=async()=>{
 };
 $('exportBtn').onclick=()=>{saveData();const b=new Blob([JSON.stringify(state,null,2)],{type:'application/json'});const a=document.createElement('a');a.href=URL.createObjectURL(b);a.download="bukken-scanner-data.json";a.click();};
 $('importBtn').onclick=()=>$('importInput').click();
-$('importInput').addEventListener('change',e=>{const f=e.target.files[0];if(!f)return;const r=new FileReader();r.onload=()=>{try{const d=JSON.parse(r.result);if(d.props&&d.docs){d.props.forEach(p=>p.learned=p.learned||{});d.docs.forEach(p=>p.learned=p.learned||{});state=d;saveData();renderSettings();alert("取り込みました。");}else alert("形式が正しくありません。");}catch(err){alert("読み込み失敗。");}};r.readAsText(f);e.target.value="";});
+$('importInput').addEventListener('change',e=>{const f=e.target.files[0];if(!f)return;const r=new FileReader();r.onload=()=>{try{const d=JSON.parse(r.result);if(d.props&&d.docs){state=migrate(d);saveData();renderSettings();alert("取り込みました。");}else alert("形式が正しくありません。");}catch(err){alert("読み込み失敗。");}};r.readAsText(f);e.target.value="";});
 
 if(typeof window!=='undefined'){window.__scanner={normalizeText,extractTerms,learnInto,computeIDF,scoreItems,confidenceOf,splitKeywords,fuzzySim};}
 </script>
