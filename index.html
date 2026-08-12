@@ -118,7 +118,7 @@
 <script>
 (function(){
   // 許可パスコードのSHA-256（平文は保存しない）。変更依頼はいつでもどうぞ。
-  const PASS_HASH = "e627fcbe79426c3869ff90b262972db942cb3b53cf15e250d41b1b46536d1f84";
+  const PASS_HASH = "0a93e35bd80e112fb28157d3c43574ab534b4b6d667c096b6914663b32599ba9";
   const KEY = "bukken-scanner-unlocked";
   async function sha256(s){
     const buf = await crypto.subtle.digest("SHA-256", new TextEncoder().encode(s));
