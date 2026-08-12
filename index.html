@@ -2,218 +2,213 @@
 <html lang="ja">
 <head>
 <meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
 <meta name="theme-color" content="#0f172a">
 <title>物件資料スキャナー</title>
 <style>
   :root{
     --bg:#0f172a; --panel:#1e293b; --panel2:#273449; --line:#334155;
     --text:#e2e8f0; --muted:#94a3b8; --accent:#38bdf8; --accent2:#0ea5e9;
-    --good:#22c55e; --warn:#f59e0b; --bad:#ef4444; --radius:14px;
+    --good:#22c55e; --warn:#f59e0b; --bad:#ef4444;
   }
   *{box-sizing:border-box;-webkit-tap-highlight-color:transparent;}
-  html,body{margin:0;padding:0;}
+  html,body{margin:0;padding:0;height:100%;overflow:hidden;}
   body{
     font-family:-apple-system,BlinkMacSystemFont,"Hiragino Sans","Noto Sans JP",sans-serif;
-    background:var(--bg); color:var(--text); line-height:1.6;
-    padding:env(safe-area-inset-top) env(safe-area-inset-right) env(safe-area-inset-bottom) env(safe-area-inset-left);
+    background:var(--bg); color:var(--text);
   }
-  header{
-    position:sticky; top:0; z-index:10; background:rgba(15,23,42,.92);
-    backdrop-filter:blur(8px); border-bottom:1px solid var(--line);
-    display:flex; align-items:center; justify-content:space-between; padding:12px 16px;
-  }
-  header h1{font-size:17px; margin:0; font-weight:700; letter-spacing:.02em;}
-  header .sub{font-size:11px; color:var(--muted); font-weight:400;}
-  .icon-btn{
-    background:var(--panel2); border:1px solid var(--line); color:var(--text);
-    border-radius:10px; padding:8px 12px; font-size:13px; cursor:pointer;
-  }
-  main{max-width:640px; margin:0 auto; padding:16px;}
-  .card{background:var(--panel); border:1px solid var(--line); border-radius:var(--radius); padding:16px; margin-bottom:16px;}
-  .camera-wrap{position:relative; background:#000; border-radius:var(--radius); overflow:hidden; aspect-ratio:3/4; display:flex; align-items:center; justify-content:center;}
-  #video,#preview{width:100%; height:100%; object-fit:cover; display:none;}
-  .scan-frame{position:absolute; inset:8% 8%; border:2px solid rgba(56,189,248,.6); border-radius:12px; pointer-events:none; display:none;}
-  .scan-line{position:absolute; left:8%; right:8%; height:2px; background:var(--accent); box-shadow:0 0 8px var(--accent); top:8%; display:none; animation:scan 2.2s linear infinite;}
-  @keyframes scan{0%{top:8%}50%{top:88%}100%{top:8%}}
-  .camera-placeholder{color:var(--muted); font-size:14px; text-align:center; padding:24px;}
-  .live-badge{position:absolute; top:10px; left:10px; background:rgba(2,6,23,.75); color:var(--accent); font-size:12px; font-weight:700; padding:4px 10px; border-radius:99px; display:none;}
-  .btn{
-    display:block; width:100%; border:none; border-radius:12px; padding:15px;
-    font-size:16px; font-weight:700; cursor:pointer; margin-top:12px;
-    background:linear-gradient(180deg,var(--accent),var(--accent2)); color:#04283a;
-  }
+  .btn{border:none;border-radius:12px;padding:14px;font-size:15px;font-weight:700;cursor:pointer;
+       background:linear-gradient(180deg,var(--accent),var(--accent2));color:#04283a;}
   .btn:active{transform:translateY(1px);}
-  .btn.secondary{background:var(--panel2); color:var(--text); border:1px solid var(--line); font-weight:600;}
-  .btn:disabled{opacity:.5; cursor:not-allowed;}
-  .row{display:flex; gap:10px;}
-  .row .btn{margin-top:12px;}
-  .toggle-row{display:flex; align-items:center; justify-content:space-between; margin-top:14px; font-size:14px;}
-  .switch{position:relative; width:48px; height:28px; background:var(--panel2); border:1px solid var(--line); border-radius:99px; cursor:pointer; transition:.2s;}
+  .btn.secondary{background:var(--panel2);color:var(--text);border:1px solid var(--line);font-weight:600;}
+  .btn:disabled{opacity:.5;}
+
+  /* ===== 1画面レイアウト ===== */
+  .app{height:100dvh;height:100vh;display:flex;flex-direction:column;overflow:hidden;
+       padding:env(safe-area-inset-top) 0 env(safe-area-inset-bottom);}
+  .topbar{flex:0 0 auto;display:flex;align-items:center;justify-content:space-between;
+          padding:8px 14px;border-bottom:1px solid var(--line);}
+  .topbar h1{font-size:15px;margin:0;font-weight:700;}
+  .topbar .sub{font-size:10px;color:var(--muted);}
+  .icon-btn{background:var(--panel2);border:1px solid var(--line);color:var(--text);
+            border-radius:9px;padding:7px 11px;font-size:12px;cursor:pointer;}
+
+  .stage{flex:1 1 auto;position:relative;min-height:0;background:#000;overflow:hidden;}
+  #video,#preview{position:absolute;inset:0;width:100%;height:100%;object-fit:cover;display:none;}
+  .scan-frame{position:absolute;inset:6%;border:2px solid rgba(56,189,248,.55);border-radius:14px;pointer-events:none;display:none;}
+  .scan-line{position:absolute;left:6%;right:6%;height:2px;background:var(--accent);box-shadow:0 0 8px var(--accent);top:6%;display:none;animation:scan 2.2s linear infinite;}
+  @keyframes scan{0%{top:6%}50%{top:90%}100%{top:6%}}
+  .live-badge{position:absolute;top:10px;left:10px;background:rgba(2,6,23,.7);color:var(--accent);
+              font-size:11px;font-weight:700;padding:4px 9px;border-radius:99px;display:none;}
+  .placeholder{position:absolute;inset:0;display:flex;align-items:center;justify-content:center;
+               text-align:center;color:var(--muted);font-size:13px;padding:24px;line-height:1.8;}
+
+  /* 判別結果：カメラ下部オーバーレイ（高さを取らない） */
+  #resultOverlay{position:absolute;left:0;right:0;bottom:0;display:none;
+                 background:linear-gradient(180deg,rgba(15,23,42,0),rgba(15,23,42,.92) 40%);
+                 padding:26px 14px 12px;}
+  .res-line{display:flex;align-items:flex-end;justify-content:space-between;gap:10px;}
+  .res-left{min-width:0;}
+  .res-label{font-size:10px;color:var(--muted);letter-spacing:.08em;}
+  .res-prop{font-size:20px;font-weight:800;line-height:1.2;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+  .res-doc{font-size:14px;font-weight:700;color:var(--accent);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+  .res-right{flex:0 0 auto;text-align:right;}
+  .conf{display:inline-block;font-size:11px;padding:3px 9px;border-radius:99px;font-weight:700;}
+  .conf.high{background:rgba(34,197,94,.2);color:var(--good);}
+  .conf.mid{background:rgba(245,158,11,.2);color:var(--warn);}
+  .conf.low{background:rgba(239,68,68,.2);color:var(--bad);}
+  .conf.none{background:var(--panel2);color:var(--muted);}
+  .fix-link{display:block;margin-top:6px;background:rgba(39,52,73,.9);border:1px solid var(--line);
+            color:var(--text);border-radius:8px;padding:6px 10px;font-size:12px;cursor:pointer;}
+
+  /* 操作バー（コンパクト） */
+  .controls{flex:0 0 auto;padding:10px 14px;display:flex;flex-direction:column;gap:8px;border-top:1px solid var(--line);}
+  .controls .main-row{display:flex;gap:8px;}
+  .controls .main-row .btn{flex:1;}
+  .controls .sub-row{display:flex;align-items:center;justify-content:space-between;gap:10px;}
+  .sub-row .btn{flex:1;padding:11px;font-size:13px;}
+  .toggle{display:flex;align-items:center;gap:8px;font-size:12px;color:var(--muted);white-space:nowrap;}
+  .switch{position:relative;width:42px;height:24px;background:var(--panel2);border:1px solid var(--line);border-radius:99px;cursor:pointer;transition:.2s;flex:0 0 auto;}
   .switch.on{background:var(--accent);}
-  .switch::after{content:""; position:absolute; top:2px; left:2px; width:22px; height:22px; border-radius:50%; background:#fff; transition:.2s;}
-  .switch.on::after{left:22px;}
-  .progress{margin-top:12px; font-size:13px; color:var(--muted); min-height:20px;}
-  .bar{height:6px; background:var(--panel2); border-radius:99px; overflow:hidden; margin-top:6px; display:none;}
-  .bar>div{height:100%; width:0%; background:var(--accent); transition:width .2s;}
-  /* result */
-  .result-hidden{display:none;}
-  .result-main{text-align:center; padding:8px 0 4px;}
-  .result-label{font-size:12px; color:var(--muted); letter-spacing:.1em;}
-  .result-property{font-size:24px; font-weight:800; margin:4px 0;}
-  .result-doc{font-size:18px; font-weight:700; color:var(--accent);}
-  .conf{display:inline-block; font-size:12px; padding:3px 10px; border-radius:99px; margin-top:8px; font-weight:700;}
-  .conf.high{background:rgba(34,197,94,.15); color:var(--good);}
-  .conf.mid{background:rgba(245,158,11,.15); color:var(--warn);}
-  .conf.low{background:rgba(239,68,68,.15); color:var(--bad);}
-  .conf.none{background:var(--panel2); color:var(--muted);}
-  .correct-box{margin-top:16px; border-top:1px solid var(--line); padding-top:14px;}
-  .correct-box h3{font-size:12px; color:var(--muted); margin:0 0 8px; font-weight:600;}
-  .correct-box select{width:100%; background:var(--panel2); border:1px solid var(--line); color:var(--text); border-radius:8px; padding:11px; font-size:15px; margin-bottom:8px; font-family:inherit;}
-  details.ocr{margin-top:12px;}
-  details.ocr summary{font-size:12px; color:var(--muted); cursor:pointer;}
-  details.ocr pre{white-space:pre-wrap; word-break:break-all; font-size:11px; color:var(--muted); background:#0b1220; padding:10px; border-radius:8px; max-height:160px; overflow:auto;}
-  /* settings sheet */
-  .overlay{position:fixed; inset:0; background:rgba(2,6,23,.7); z-index:20; display:none;}
-  .sheet{position:fixed; inset:0; z-index:21; background:var(--bg); display:none; flex-direction:column;}
-  .sheet-body{overflow:auto; padding:16px; max-width:640px; margin:0 auto; width:100%;}
-  .item{background:var(--panel); border:1px solid var(--line); border-radius:12px; padding:12px; margin-bottom:10px;}
-  .item input, .item textarea, .item select{
-    width:100%; background:var(--panel2); border:1px solid var(--line); color:var(--text);
-    border-radius:8px; padding:10px; font-size:15px; margin-top:6px; font-family:inherit;
-  }
-  .item textarea{min-height:46px; resize:vertical;}
-  .item .lbl{font-size:11px; color:var(--muted); margin-top:8px;}
-  .item .meta{font-size:11px; color:var(--accent); margin-top:8px;}
-  .item .del{background:none; border:none; color:var(--bad); font-size:13px; cursor:pointer; margin-top:8px; padding:4px 0;}
-  .item .clr{background:none; border:none; color:var(--warn); font-size:13px; cursor:pointer; margin-top:8px; padding:4px 12px 4px 0;}
-  .section-title{font-size:13px; font-weight:700; color:var(--muted); margin:20px 0 8px; letter-spacing:.05em;}
-  .hint{font-size:12px; color:var(--muted); background:var(--panel); border:1px dashed var(--line); border-radius:10px; padding:12px; margin-bottom:12px;}
-  .tabbar{display:flex; gap:8px; margin-bottom:14px;}
-  .tabbar button{flex:1; background:var(--panel2); border:1px solid var(--line); color:var(--muted); border-radius:10px; padding:10px; font-size:13px; font-weight:600; cursor:pointer;}
-  .tabbar button.active{background:var(--accent); color:#04283a; border-color:var(--accent);}
+  .switch::after{content:"";position:absolute;top:2px;left:2px;width:18px;height:18px;border-radius:50%;background:#fff;transition:.2s;}
+  .switch.on::after{left:20px;}
+  .status{font-size:11px;color:var(--muted);min-height:15px;text-align:center;}
+
+  /* ===== ボトムシート（修正学習） ===== */
+  .overlay{position:fixed;inset:0;background:rgba(2,6,23,.7);z-index:30;display:none;}
+  .bsheet{position:fixed;left:0;right:0;bottom:0;z-index:31;background:var(--panel);
+          border-radius:18px 18px 0 0;border-top:1px solid var(--line);padding:18px 16px calc(18px + env(safe-area-inset-bottom));display:none;}
+  .bsheet h3{margin:0 0 12px;font-size:14px;}
+  .bsheet select{width:100%;background:var(--panel2);border:1px solid var(--line);color:var(--text);
+                 border-radius:9px;padding:12px;font-size:15px;margin-bottom:10px;font-family:inherit;}
+  .bsheet .btn{width:100%;}
+  .bsheet .cancel{width:100%;background:none;border:none;color:var(--muted);margin-top:8px;padding:8px;font-size:13px;cursor:pointer;}
+
+  /* ===== 設定・学習（全画面） ===== */
+  .sheet{position:fixed;inset:0;z-index:32;background:var(--bg);display:none;flex-direction:column;}
+  .sheet-head{flex:0 0 auto;display:flex;align-items:center;justify-content:space-between;padding:12px 16px;border-bottom:1px solid var(--line);}
+  .sheet-body{flex:1;overflow:auto;padding:16px;max-width:640px;margin:0 auto;width:100%;}
+  .item{background:var(--panel);border:1px solid var(--line);border-radius:12px;padding:12px;margin-bottom:10px;}
+  .item input,.item textarea,.item select{width:100%;background:var(--panel2);border:1px solid var(--line);color:var(--text);border-radius:8px;padding:10px;font-size:15px;margin-top:6px;font-family:inherit;}
+  .item textarea{min-height:46px;resize:vertical;}
+  .item .lbl{font-size:11px;color:var(--muted);margin-top:8px;}
+  .item .meta{font-size:11px;color:var(--accent);margin-top:8px;}
+  .item .del{background:none;border:none;color:var(--bad);font-size:13px;cursor:pointer;margin-top:8px;}
+  .item .clr{background:none;border:none;color:var(--warn);font-size:13px;cursor:pointer;margin-top:8px;margin-right:14px;}
+  .section-title{font-size:13px;font-weight:700;color:var(--muted);margin:20px 0 8px;}
+  .hint{font-size:12px;color:var(--muted);background:var(--panel);border:1px dashed var(--line);border-radius:10px;padding:12px;margin-bottom:12px;}
+  .tabbar{display:flex;gap:8px;margin-bottom:14px;}
+  .tabbar button{flex:1;background:var(--panel2);border:1px solid var(--line);color:var(--muted);border-radius:10px;padding:10px;font-size:13px;font-weight:600;cursor:pointer;}
+  .tabbar button.active{background:var(--accent);color:#04283a;border-color:var(--accent);}
   .tabpage{display:none;} .tabpage.active{display:block;}
-  /* passcode gate */
-  #gate{position:fixed; inset:0; z-index:100; background:var(--bg); display:flex; align-items:center; justify-content:center; padding:24px;}
-  #gate .box{width:100%; max-width:340px; text-align:center;}
-  #gate h2{font-size:18px; margin:0 0 4px;}
-  #gate p{font-size:12px; color:var(--muted); margin:0 0 18px;}
-  #gate input{width:100%; background:var(--panel2); border:1px solid var(--line); color:var(--text); border-radius:10px; padding:14px; font-size:18px; text-align:center; letter-spacing:.2em;}
-  #gate .err{color:var(--bad); font-size:13px; min-height:20px; margin-top:10px;}
-  body.locked{overflow:hidden;}
+  .row{display:flex;gap:10px;} .row .btn{flex:1;}
+  .full-btn{width:100%;margin-top:6px;}
+
+  /* パスコードゲート */
+  #gate{position:fixed;inset:0;z-index:100;background:var(--bg);display:flex;align-items:center;justify-content:center;padding:24px;}
+  #gate .box{width:100%;max-width:320px;text-align:center;}
+  #gate h2{font-size:18px;margin:0 0 4px;}
+  #gate p{font-size:12px;color:var(--muted);margin:0 0 18px;}
+  #gate input{width:100%;background:var(--panel2);border:1px solid var(--line);color:var(--text);border-radius:10px;padding:14px;font-size:20px;text-align:center;letter-spacing:.3em;}
+  #gate .btn{width:100%;margin-top:14px;}
+  #gate .err{color:var(--bad);font-size:13px;min-height:20px;margin-top:10px;}
+  body.locked .app{display:none;}
 </style>
 </head>
 <body class="locked">
 
-<!-- パスコード保護（クライアント側／簡易・抑止用）。コード自体は埋め込まずSHA-256で照合 -->
+<!-- パスコード保護（クライアント側・簡易／SHA-256照合） -->
 <div id="gate">
   <div class="box">
     <h2>🔒 物件資料スキャナー</h2>
     <p>関係者用です。パスコードを入力してください。</p>
     <input id="gatePass" type="password" inputmode="numeric" placeholder="パスコード" autocomplete="off">
-    <button class="btn" id="gateBtn" style="margin-top:14px">入る</button>
+    <button class="btn" id="gateBtn">入る</button>
     <div class="err" id="gateErr"></div>
   </div>
 </div>
 <script>
 (function(){
-  // 許可パスコードのSHA-256（平文は保存しない）。変更依頼はいつでもどうぞ。
-  const PASS_HASH = "0a93e35bd80e112fb28157d3c43574ab534b4b6d667c096b6914663b32599ba9";
-  const KEY = "bukken-scanner-unlocked";
-  async function sha256(s){
-    const buf = await crypto.subtle.digest("SHA-256", new TextEncoder().encode(s));
-    return [...new Uint8Array(buf)].map(b=>b.toString(16).padStart(2,"0")).join("");
-  }
-  function unlock(){ try{ sessionStorage.setItem(KEY,"1"); }catch(e){} document.getElementById("gate").style.display="none"; document.body.classList.remove("locked"); }
-  try{ if(sessionStorage.getItem(KEY)==="1") unlock(); }catch(e){}
-  const inp=document.getElementById("gatePass"), btn=document.getElementById("gateBtn"), err=document.getElementById("gateErr");
-  async function tryUnlock(){
-    const h = await sha256(inp.value.trim());
-    if(h === PASS_HASH){ err.textContent=""; unlock(); }
-    else { err.textContent="パスコードが違います。"; inp.value=""; inp.focus(); }
-  }
-  btn.addEventListener("click", tryUnlock);
-  inp.addEventListener("keydown", e=>{ if(e.key==="Enter") tryUnlock(); });
+  const PASS_HASH = "0a93e35bd80e112fb28157d3c43574ab534b4b6d667c096b6914663b32599ba9"; // 0425
+  const KEY="bukken-scanner-unlocked";
+  async function sha256(s){const b=await crypto.subtle.digest("SHA-256",new TextEncoder().encode(s));return [...new Uint8Array(b)].map(x=>x.toString(16).padStart(2,"0")).join("");}
+  function unlock(){try{sessionStorage.setItem(KEY,"1");}catch(e){}document.getElementById("gate").style.display="none";document.body.classList.remove("locked");}
+  try{if(sessionStorage.getItem(KEY)==="1")unlock();}catch(e){}
+  const inp=document.getElementById("gatePass"),btn=document.getElementById("gateBtn"),err=document.getElementById("gateErr");
+  async function go(){const h=await sha256(inp.value.trim());if(h===PASS_HASH){err.textContent="";unlock();}else{err.textContent="パスコードが違います。";inp.value="";inp.focus();}}
+  btn.addEventListener("click",go); inp.addEventListener("keydown",e=>{if(e.key==="Enter")go();});
 })();
 </script>
 
-<header>
-  <div>
-    <h1>物件資料スキャナー</h1>
-    <div class="sub">カメラで撮って物件と資料を自動判別</div>
+<div class="app">
+  <div class="topbar">
+    <div><h1>物件資料スキャナー</h1><div class="sub">カメラで撮って自動判別</div></div>
+    <button class="icon-btn" id="openSettings">⚙ 設定・学習</button>
   </div>
-  <button class="icon-btn" id="openSettings">⚙ 設定・学習</button>
-</header>
 
-<main>
-  <div class="card">
-    <div class="camera-wrap">
-      <video id="video" playsinline muted></video>
-      <img id="preview" alt="preview">
-      <div class="scan-frame" id="scanFrame"></div>
-      <div class="scan-line" id="scanLine"></div>
-      <div class="live-badge" id="liveBadge">● 自動読み取り中</div>
-      <div class="camera-placeholder" id="placeholder">「カメラを起動」を押すと<br>自動で資料の読み取りを始めます。</div>
+  <div class="stage">
+    <video id="video" playsinline muted></video>
+    <img id="preview" alt="">
+    <div class="scan-frame" id="scanFrame"></div>
+    <div class="scan-line" id="scanLine"></div>
+    <div class="live-badge" id="liveBadge">● 自動読み取り中</div>
+    <div class="placeholder" id="placeholder">「カメラを起動」を押すと<br>自動で資料の読み取りを始めます。<br><br>資料を枠いっぱいに、明るく水平に写すと精度が上がります。</div>
+    <div id="resultOverlay">
+      <div class="res-line">
+        <div class="res-left">
+          <div class="res-label" id="rLabel">推測</div>
+          <div class="res-prop" id="rProp">—</div>
+          <div class="res-doc" id="rDoc">—</div>
+        </div>
+        <div class="res-right"><span class="conf" id="rConf"></span></div>
+      </div>
+      <div class="fix-link" id="openFix">✏️ 違う・修正して学習させる</div>
     </div>
+  </div>
 
-    <button class="btn" id="startCam">📷 カメラを起動（自動読み取り）</button>
-    <button class="btn secondary" id="rescan" style="display:none">🔄 もう一度スキャン</button>
-    <button class="btn secondary" id="pickFile">🖼 写真を撮る／選ぶ</button>
+  <div class="controls">
+    <div class="main-row">
+      <button class="btn" id="startCam">📷 カメラを起動</button>
+      <button class="btn secondary" id="rescan" style="display:none">🔄 もう一度</button>
+    </div>
+    <div class="sub-row">
+      <button class="btn secondary" id="pickFile">🖼 写真を選ぶ</button>
+      <div class="toggle"><span>自動</span><div class="switch on" id="autoSwitch"></div></div>
+    </div>
     <input type="file" id="fileInput" accept="image/*" capture="environment" style="display:none">
-
-    <div class="toggle-row">
-      <span>自動読み取り</span>
-      <div class="switch on" id="autoSwitch"></div>
-    </div>
-
-    <div class="progress" id="progress"></div>
-    <div class="bar" id="bar"><div></div></div>
+    <div class="status" id="status"></div>
   </div>
+</div>
 
-  <div class="card result-hidden" id="resultCard">
-    <div class="result-main">
-      <div class="result-label" id="rLabel">この資料は</div>
-      <div class="result-property" id="rProp">—</div>
-      <div class="result-doc" id="rDoc">—</div>
-      <div><span class="conf" id="rConf"></span></div>
-    </div>
+<!-- 修正・学習ボトムシート -->
+<div class="overlay" id="fixOverlay"></div>
+<div class="bsheet" id="fixSheet">
+  <h3>正しい内容を選んで学習（使うほど賢くなります）</h3>
+  <select id="fixProp"></select>
+  <select id="fixDoc"></select>
+  <button class="btn" id="learnBtn">✅ この内容で学習する</button>
+  <button class="cancel" id="fixCancel">閉じる</button>
+</div>
 
-    <div class="correct-box">
-      <h3>判別を修正して学習させる（使うほど賢くなります）</h3>
-      <select id="fixProp"></select>
-      <select id="fixDoc"></select>
-      <button class="btn" id="learnBtn">✅ この内容で学習する</button>
-    </div>
-
-    <details class="ocr">
-      <summary>読み取った文字を確認</summary>
-      <pre id="ocrText"></pre>
-    </details>
-  </div>
-</main>
-
-<!-- Settings / Training sheet -->
-<div class="overlay" id="overlay"></div>
+<!-- 設定・学習（全画面） -->
 <div class="sheet" id="sheet">
-  <header>
-    <div><h1>設定・学習</h1><div class="sub">物件の登録と教師データ学習</div></div>
+  <div class="sheet-head">
+    <div><h1 style="margin:0;font-size:16px;">設定・学習</h1></div>
     <button class="icon-btn" id="closeSettings">閉じる</button>
-  </header>
+  </div>
   <div class="sheet-body">
     <div class="tabbar">
       <button data-tab="reg" class="active">物件・資料の登録</button>
       <button data-tab="train">サンプルで学習</button>
     </div>
-
-    <!-- 登録タブ -->
     <div class="tabpage active" id="tab-reg">
-      <div class="hint">物件ごとに、見分けるキーワード（物件名・住所・部屋番号・地番など、資料に書かれていそうな語をカンマ区切り）を登録します。空欄でも、下の「サンプルで学習」やスキャン後の修正で自動的に賢くなります。データはこの端末に保存されます。</div>
+      <div class="hint">物件ごとに見分けるキーワード（物件名・住所・部屋番号などをカンマ区切り）を登録します。OCRの多少の読み違いは自動で吸収します。データはこの端末に保存されます。</div>
       <div class="section-title">物件リスト</div>
       <div id="propList"></div>
-      <button class="btn secondary" id="addProp">＋ 物件を追加</button>
+      <button class="btn secondary full-btn" id="addProp">＋ 物件を追加</button>
       <div class="section-title">資料の種類</div>
       <div id="docList"></div>
-      <button class="btn secondary" id="addDoc">＋ 資料の種類を追加</button>
+      <button class="btn secondary full-btn" id="addDoc">＋ 資料の種類を追加</button>
       <div class="section-title">バックアップ</div>
       <div class="row">
         <button class="btn secondary" id="exportBtn">💾 書き出し</button>
@@ -221,384 +216,251 @@
       </div>
       <input type="file" id="importInput" accept="application/json" style="display:none">
     </div>
-
-    <!-- 学習タブ -->
     <div class="tabpage" id="tab-train">
-      <div class="hint">「教師データ」を読み込ませて精度を上げます。物件（と分かれば資料種別）を選び、その資料の写真を数枚選ぶと、その物件に特有の言葉を自動で抽出して覚えます。ありふれた言葉は自動的に無視されます。</div>
+      <div class="hint">物件（と分かれば資料種別）を選び、その資料の写真を数枚選ぶと、特有の言葉を自動抽出して覚えます。実物写真での学習が精度向上に一番効きます。</div>
       <div class="item">
         <div class="lbl">学習させる物件</div>
         <select id="trainProp"></select>
-        <div class="lbl">資料の種類（分かれば・任意）</div>
+        <div class="lbl">資料の種類（任意）</div>
         <select id="trainDoc"></select>
-        <div class="lbl">この物件・資料のサンプル写真（複数選択可）</div>
+        <div class="lbl">サンプル写真（複数選択可）</div>
         <input type="file" id="trainFiles" accept="image/*" multiple>
-        <button class="btn" id="trainRun" style="margin-top:12px">🧠 選んだ写真で学習する</button>
-        <div class="progress" id="trainProgress"></div>
+        <button class="btn full-btn" id="trainRun" style="margin-top:12px">🧠 選んだ写真で学習する</button>
+        <div class="meta" id="trainProgress"></div>
       </div>
-      <div class="hint">学習した語の数は「物件・資料の登録」タブの各項目に表示されます。うまく当たらないときは、実物の写真で数枚ずつ学習させるのが一番効果的です。</div>
     </div>
-
-    <div style="height:40px"></div>
+    <div style="height:30px"></div>
   </div>
 </div>
 
 <script src="https://cdn.jsdelivr.net/npm/tesseract.js@5/dist/tesseract.min.js"></script>
 <script>
 /* ============================================================
-   物件資料スキャナー v2
-   - 端末内OCR（Tesseract.js）
-   - 教師データ学習（サンプル学習＋修正学習, TF-IDF重み付け）
-   - 連続自動スキャン＆自動確定
-   - 低確度でも「推測」を必ず表示
-   サーバー / APIキー不要・完全無料
+   物件資料スキャナー v4
+   - 1画面完結レイアウト
+   - 画像前処理（グレースケール+コントラスト）＋枠内クロップ＋高解像度認識
+   - OCR誤読に強いあいまい一致（Levenshtein）
+   - 複数フレーム投票で自動確定
    ============================================================ */
+const $=id=>document.getElementById(id);
 
 /* ---------- 既定データ ---------- */
-const DEFAULT_PROPS = [
-  { name:"サンプルマンション函館", keywords:"函館市, 若松町, 501", learned:{} },
-  { name:"サンプルアパート大和",   keywords:"大和市, 中央林間", learned:{} },
+const DEFAULT_PROPS=[{name:"サンプル物件",keywords:"サンプル物件",learned:{}}];
+const DEFAULT_DOCS=[
+  {name:"マイソク／物件概要書",keywords:"マイソク, 物件概要, 販売図面, 表面利回り, 満室想定",learned:{}},
+  {name:"レントロール",keywords:"レントロール, 賃料明細, 入居状況, 契約賃料",learned:{}},
+  {name:"請求書",keywords:"請求書, 御請求書, 御請求, 請求金額, 御中",learned:{}},
+  {name:"送金明細",keywords:"送金明細, 送金明細書, 振込, 差引支払額",learned:{}},
+  {name:"領収書",keywords:"領収書, 領収証, 但し, 正に領収",learned:{}},
+  {name:"電気料金・光熱費",keywords:"電気料金, 使用量, 検針, 電気料金内訳",learned:{}},
+  {name:"重要事項説明書",keywords:"重要事項説明, 重説, 宅地建物取引",learned:{}},
+  {name:"売買契約書",keywords:"売買契約, 不動産売買契約, 手付金",learned:{}},
+  {name:"登記事項証明書／登記簿",keywords:"登記事項証明, 登記簿, 全部事項, 甲区, 乙区",learned:{}},
+  {name:"固定資産税関係",keywords:"固定資産, 評価証明, 公課証明, 課税明細, 名寄帳",learned:{}},
 ];
-const DEFAULT_DOCS = [
-  { name:"マイソク／物件概要書", keywords:"マイソク, 物件概要, 販売図面, 表面利回り, 満室想定", learned:{} },
-  { name:"レントロール",         keywords:"レントロール, 賃料明細, 入居状況, 契約賃料", learned:{} },
-  { name:"重要事項説明書",       keywords:"重要事項説明, 重説, 宅地建物取引", learned:{} },
-  { name:"売買契約書",           keywords:"売買契約, 不動産売買契約, 手付金", learned:{} },
-  { name:"登記事項証明書／登記簿", keywords:"登記事項証明, 登記簿, 全部事項, 甲区, 乙区, 所有権", learned:{} },
-  { name:"固定資産税関係",       keywords:"固定資産, 評価証明, 公課証明, 課税明細, 名寄帳", learned:{} },
-  { name:"間取り図／建物図面",   keywords:"間取, 平面図, 建物図面, 配置図, 求積図", learned:{} },
-  { name:"検査済証／確認済証",   keywords:"検査済証, 確認済証, 建築確認, 確認済", learned:{} },
-];
+const STORE_KEY="bukken-scanner-v2";
+function loadData(){try{const raw=localStorage.getItem(STORE_KEY);if(raw){const d=JSON.parse(raw);if(d.props&&d.docs){d.props.forEach(p=>p.learned=p.learned||{});d.docs.forEach(p=>p.learned=p.learned||{});return d;}}}catch(e){}return{props:JSON.parse(JSON.stringify(DEFAULT_PROPS)),docs:JSON.parse(JSON.stringify(DEFAULT_DOCS))};}
+function saveData(){try{localStorage.setItem(STORE_KEY,JSON.stringify(state));}catch(e){}}
+let state=loadData();
 
-/* ---------- 保存 ---------- */
-const STORE_KEY = "bukken-scanner-v2";
-function loadData(){
-  try{
-    const raw = localStorage.getItem(STORE_KEY);
-    if(raw){ const d = JSON.parse(raw); if(d.props && d.docs){ d.props.forEach(p=>p.learned=p.learned||{}); d.docs.forEach(p=>p.learned=p.learned||{}); return d; } }
-  }catch(e){}
-  return { props:JSON.parse(JSON.stringify(DEFAULT_PROPS)), docs:JSON.parse(JSON.stringify(DEFAULT_DOCS)) };
-}
-function saveData(){ try{ localStorage.setItem(STORE_KEY, JSON.stringify(state)); }catch(e){} }
-let state = loadData();
-
-/* ================= 照合・学習ロジック（純粋関数：テスト可能） ================= */
-function normalizeText(s){
-  if(!s) return "";
-  let t = s.normalize("NFKC").toLowerCase();
-  t = t.replace(/[\s　]/g, "");
-  t = t.replace(/[.,、。・:：;；\-ー_/\\|()（）\[\]【】「」]/g, "");
-  return t;
-}
-function splitKeywords(str){ return (str||"").split(/[,、\n]/).map(k=>k.trim()).filter(Boolean); }
-
-// 学習用：テキストから特徴語の候補（日本語2〜4gram + 英数字）を抽出
-function extractTerms(text){
-  if(!text) return [];
-  const norm = text.normalize("NFKC");
-  const out = [];
-  const jpRuns = norm.match(/[぀-ヿ一-龯]+/g) || [];
-  for(const run of jpRuns){
-    const r = run.slice(0,60);
-    for(let n=2;n<=4;n++){
-      if(r.length < n) continue;
-      for(let i=0;i+n<=r.length;i++) out.push(r.slice(i,i+n));
+/* ================= 判別・学習ロジック（純粋関数） ================= */
+function normalizeText(s){if(!s)return"";let t=s.normalize("NFKC").toLowerCase();t=t.replace(/[\s　]/g,"");t=t.replace(/[.,、。・:：;；\-ー_/\\|()（）\[\]【】「」]/g,"");return t;}
+function splitKeywords(str){return(str||"").split(/[,、\n]/).map(k=>k.trim()).filter(Boolean);}
+function extractTerms(text){if(!text)return[];const norm=text.normalize("NFKC");const out=[];const jp=norm.match(/[぀-ヿ一-龯]+/g)||[];for(const run of jp){const r=run.slice(0,60);for(let n=2;n<=4;n++){if(r.length<n)continue;for(let i=0;i+n<=r.length;i++)out.push(r.slice(i,i+n));}}const an=norm.toLowerCase().match(/[a-z0-9]{2,}/g)||[];out.push(...an);return out;}
+function learnInto(item,text,cap){cap=cap||120;item.learned=item.learned||{};for(const t of extractTerms(text))item.learned[t]=(item.learned[t]||0)+1;const e=Object.entries(item.learned).sort((a,b)=>b[1]-a[1]).slice(0,cap);item.learned=Object.fromEntries(e);return item;}
+function computeIDF(items){const N=Math.max(1,items.length);const df={};for(const it of items)for(const t in(it.learned||{}))df[t]=(df[t]||0)+1;const idf={};for(const t in df)idf[t]=Math.log((N+1)/df[t]);return idf;}
+function lev(a,b){const m=a.length,n=b.length;if(!m)return n;if(!n)return m;let prev=Array.from({length:n+1},(_,i)=>i),cur=new Array(n+1);for(let i=1;i<=m;i++){cur[0]=i;for(let j=1;j<=n;j++){const c=a[i-1]===b[j-1]?0:1;cur[j]=Math.min(prev[j]+1,cur[j-1]+1,prev[j-1]+c);}[prev,cur]=[cur,prev];}return prev[n];}
+// kwがnorm内に「ほぼ」含まれるか（OCR誤読許容）
+function fuzzySim(norm,kw){if(!kw||kw.length<2)return 0;if(norm.includes(kw))return 1;const L=kw.length;let best=0;for(const wl of[L,L-1,L+1]){if(wl<2)continue;for(let i=0;i+wl<=norm.length;i++){const d=lev(kw,norm.substr(i,wl));const sim=1-d/Math.max(L,wl);if(sim>best){best=sim;if(best>=1)return 1;}}}return best;}
+function scoreItems(text,items){
+  const norm=normalizeText(text);const idf=computeIDF(items);
+  const res=items.map((it,idx)=>{let score=0;const hits=[];const seen=new Set();
+    const kws=splitKeywords(it.keywords);if(it.name)kws.push(it.name);
+    for(const kw of kws){const nk=normalizeText(kw);if(nk.length<2||seen.has(nk))continue;seen.add(nk);
+      const sim=fuzzySim(norm,nk);
+      if(sim>=1){score+=nk.length*3;hits.push(kw);}
+      else if(nk.length>=4&&sim>=0.72){score+=nk.length*1.8*sim;hits.push(kw+"~");}
     }
-  }
-  const an = norm.toLowerCase().match(/[a-z0-9]{2,}/g) || [];
-  out.push(...an);
-  return out;
-}
-// 学習：item.learned に語の出現回数を加算（上位capのみ保持）
-function learnInto(item, text, cap){
-  cap = cap || 120;
-  item.learned = item.learned || {};
-  const terms = extractTerms(text);
-  for(const t of terms){ item.learned[t] = (item.learned[t]||0) + 1; }
-  const entries = Object.entries(item.learned).sort((a,b)=> b[1]-a[1]).slice(0, cap);
-  item.learned = Object.fromEntries(entries);
-  return item;
-}
-// IDF：多くの物件に共通する語ほど重みを下げる
-function computeIDF(items){
-  const N = Math.max(1, items.length);
-  const df = {};
-  for(const it of items){ for(const term in (it.learned||{})) df[term] = (df[term]||0)+1; }
-  const idf = {};
-  for(const t in df){ idf[t] = Math.log((N + 1) / df[t]); }  // df=N → ≈0
-  return idf;
-}
-// スコアリング：手入力キーワード（強）＋学習語（TF-IDF）
-function scoreItems(text, items){
-  const norm = normalizeText(text);
-  const idf = computeIDF(items);
-  const results = items.map((it, idx)=>{
-    let score = 0; const hits = [];
-    const seen = new Set();
-    // 手入力キーワード（信頼度が高いので重み大）
-    const kws = splitKeywords(it.keywords);
-    if(it.name) kws.push(it.name);
-    for(const kw of kws){
-      const nk = normalizeText(kw);
-      if(nk.length >= 2 && !seen.has(nk)){
-        seen.add(nk);
-        if(norm.includes(nk)){ score += nk.length * 3; hits.push(kw); }
-      }
-    }
-    // 学習語（TF-IDF）
-    let learnHits = 0;
-    for(const term in (it.learned||{})){
-      const nt = normalizeText(term);
-      if(nt.length >= 2 && norm.includes(nt)){
-        const tf = 1 + Math.log(it.learned[term]);
-        const w = tf * (idf[term] || 0);
-        if(w > 0){ score += w; learnHits++; }
-      }
-    }
-    return { name:it.name, idx, score, hits, learnHits };
+    for(const term in(it.learned||{})){const nt=normalizeText(term);if(nt.length>=2&&norm.includes(nt)){const tf=1+Math.log(it.learned[term]);const w=tf*(idf[term]||0);if(w>0)score+=w;}}
+    return{name:it.name,idx,score,hits};
   });
-  results.sort((a,b)=> b.score - a.score);
-  return results;
+  res.sort((a,b)=>b.score-a.score);return res;
 }
-// 確度（推測は常に返す）
-function confidenceOf(results){
-  if(!results.length || results[0].score <= 0) return "none";
-  const top = results[0].score, second = results[1] ? results[1].score : 0;
-  if(top >= 8 && (top - second) >= Math.max(3, top*0.25)) return "high";
-  if(top >= 3) return "mid";
-  return "low";
-}
+function confidenceOf(r){if(!r.length||r[0].score<=0)return"none";const top=r[0].score,sec=r[1]?r[1].score:0;if(top>=8&&(top-sec)>=Math.max(3,top*0.25))return"high";if(top>=3)return"mid";return"low";}
 
-/* ================= 画面：状態 ================= */
-const $ = id => document.getElementById(id);
-let stream = null, busy = false, worker = null;
-let autoOn = true, scanning = false, lockCount = 0;
-let lastText = "", lastProps = [], lastDocs = [];
+/* ================= カメラ・OCR・自動投票 ================= */
+const video=$('video'),preview=$('preview'),placeholder=$('placeholder');
+const scanFrame=$('scanFrame'),scanLine=$('scanLine'),liveBadge=$('liveBadge');
+const startCam=$('startCam'),rescan=$('rescan'),pickFile=$('pickFile'),fileInput=$('fileInput');
+const statusEl=$('status'),autoSwitch=$('autoSwitch'),resultOverlay=$('resultOverlay');
+let stream=null,busy=false,worker=null,autoOn=true,scanning=false,lastText="";
+let votes={};
 
-/* ---------- カメラ & 自動スキャン ---------- */
-const video=$('video'), preview=$('preview'), placeholder=$('placeholder');
-const scanFrame=$('scanFrame'), scanLine=$('scanLine'), liveBadge=$('liveBadge');
-const startCam=$('startCam'), rescan=$('rescan'), pickFile=$('pickFile'), fileInput=$('fileInput');
-const progress=$('progress'), bar=$('bar'), barFill=bar.firstElementChild, autoSwitch=$('autoSwitch');
+autoSwitch.addEventListener('click',()=>{autoOn=!autoOn;autoSwitch.classList.toggle('on',autoOn);if(autoOn&&stream&&!scanning)startAutoLoop();else if(!autoOn)stopAutoLoop();});
 
-autoSwitch.addEventListener('click', ()=>{
-  autoOn = !autoOn; autoSwitch.classList.toggle('on', autoOn);
-  if(autoOn && stream && !scanning) startAutoLoop();
-});
-
-startCam.addEventListener('click', async ()=>{
+startCam.addEventListener('click',async()=>{
   try{
-    if(stream){ stream.getTracks().forEach(t=>t.stop()); }
-    stream = await navigator.mediaDevices.getUserMedia({ video:{ facingMode:{ ideal:"environment" } }, audio:false });
-    video.srcObject = stream; await video.play();
-    video.style.display='block'; preview.style.display='none'; placeholder.style.display='none';
-    startCam.textContent = "🔄 カメラ再起動";
-    rescan.style.display='none';
-    if(autoOn) startAutoLoop(); else { progress.textContent="「写真を撮る／選ぶ」で読み取り、または自動読み取りをオンに。"; }
-  }catch(e){
-    progress.textContent = "カメラを起動できませんでした。『写真を撮る／選ぶ』をお使いください。("+e.name+")";
-  }
+    if(stream)stream.getTracks().forEach(t=>t.stop());
+    stream=await navigator.mediaDevices.getUserMedia({video:{facingMode:{ideal:"environment"},width:{ideal:1920},height:{ideal:1080}},audio:false});
+    video.srcObject=stream;await video.play();
+    video.style.display='block';preview.style.display='none';placeholder.style.display='none';
+    startCam.textContent="🔄 カメラ再起動";rescan.style.display='none';votes={};
+    if(autoOn)startAutoLoop();else statusEl.textContent="「写真を選ぶ」で読み取り、または自動をオンに。";
+  }catch(e){statusEl.textContent="カメラを起動できません。『写真を選ぶ』をご利用ください。("+e.name+")";}
 });
+rescan.addEventListener('click',()=>{if(stream){rescan.style.display='none';votes={};startAutoLoop();}});
+pickFile.addEventListener('click',()=>fileInput.click());
+fileInput.addEventListener('change',e=>{const f=e.target.files[0];if(f){stopAutoLoop();runOnce(f);}fileInput.value="";});
 
-rescan.addEventListener('click', ()=>{ if(stream){ rescan.style.display='none'; startAutoLoop(); } });
+function setScanUI(on){scanFrame.style.display=on?'block':'none';scanLine.style.display=on?'block':'none';liveBadge.style.display=on?'block':'none';}
 
-pickFile.addEventListener('click', ()=> fileInput.click());
-fileInput.addEventListener('change', e=>{ const f=e.target.files[0]; if(f){ stopAutoLoop(); runOnce(f); } fileInput.value=""; });
-
-function setScanUI(on){
-  scanFrame.style.display = on?'block':'none';
-  scanLine.style.display  = on?'block':'none';
-  liveBadge.style.display = on?'block':'none';
+// 枠内クロップ＋グレースケール＋コントラストで前処理
+function preprocessFromVideo(highRes){
+  const vw=video.videoWidth,vh=video.videoHeight;
+  const cx=vw*0.06,cy=vh*0.06,cw0=vw*0.88,ch0=vh*0.88;
+  const maxW=highRes?1600:1050;const sc=Math.min(1,maxW/cw0);
+  const cw=Math.round(cw0*sc),ch=Math.round(ch0*sc);
+  const c=document.createElement('canvas');c.width=cw;c.height=ch;
+  const ctx=c.getContext('2d');ctx.drawImage(video,cx,cy,cw0,ch0,0,0,cw,ch);
+  return enhance(ctx,c);
 }
-function grabFrame(){
-  return new Promise(res=>{
-    const maxW = 1024;
-    const scale = Math.min(1, maxW / (video.videoWidth||maxW));
-    const cw = Math.round((video.videoWidth||maxW)*scale);
-    const ch = Math.round((video.videoHeight||maxW)*scale);
-    const canvas = document.createElement('canvas');
-    canvas.width=cw; canvas.height=ch;
-    canvas.getContext('2d').drawImage(video,0,0,cw,ch);
-    canvas.toBlob(b=>res(b), 'image/jpeg', 0.9);
-  });
+function preprocessFromImage(imgEl){
+  const maxW=1600;const sc=Math.min(1,maxW/imgEl.naturalWidth);
+  const cw=Math.round(imgEl.naturalWidth*sc),ch=Math.round(imgEl.naturalHeight*sc);
+  const c=document.createElement('canvas');c.width=cw;c.height=ch;
+  const ctx=c.getContext('2d');ctx.drawImage(imgEl,0,0,cw,ch);
+  return enhance(ctx,c);
 }
+function enhance(ctx,c){
+  const img=ctx.getImageData(0,0,c.width,c.height),d=img.data;let sum=0;
+  for(let i=0;i<d.length;i+=4){const g=0.299*d[i]+0.587*d[i+1]+0.114*d[i+2];d[i]=d[i+1]=d[i+2]=g;sum+=g;}
+  const mean=sum/(d.length/4),k=1.6;
+  for(let i=0;i<d.length;i+=4){let v=(d[i]-mean)*k+mean;v=v<0?0:v>255?255:v;d[i]=d[i+1]=d[i+2]=v;}
+  ctx.putImageData(img,0,0);return c;
+}
+function canvasToBlob(c){return new Promise(r=>c.toBlob(b=>r(b),'image/jpeg',0.92));}
+
 async function getWorker(){
-  if(worker) return worker;
-  progress.textContent = "文字認識エンジンを準備中…（初回のみ時間がかかります）";
-  worker = await Tesseract.createWorker(['jpn','eng'], 1, {
-    logger: m=>{
-      if(m.status==='recognizing text'){ bar.style.display='block'; barFill.style.width=Math.round(m.progress*100)+"%"; }
-    }
-  });
+  if(worker)return worker;
+  statusEl.textContent="文字認識エンジンを準備中…（初回のみ時間がかかります）";
+  worker=await Tesseract.createWorker(['jpn','eng'],1,{});
+  try{await worker.setParameters({tessedit_pageseg_mode:'3'});}catch(e){}
   return worker;
 }
-async function ocrBlob(blob){
-  busy = true;
-  try{
-    const w = await getWorker();
-    const { data:{ text } } = await w.recognize(blob);
-    return text || "";
-  } finally { busy=false; bar.style.display='none'; barFill.style.width="0%"; }
-}
+async function ocrBlob(blob){busy=true;try{const w=await getWorker();const{data:{text}}=await w.recognize(blob);return text||"";}finally{busy=false;}}
 
 async function startAutoLoop(){
-  if(scanning || !stream) return;
-  scanning = true; lockCount = 0; setScanUI(true);
-  progress.textContent = "自動読み取り中… 資料を枠に合わせてください。";
-  while(scanning && stream){
+  if(scanning||!stream)return;scanning=true;votes={};setScanUI(true);
+  statusEl.textContent="自動読み取り中… 資料を枠いっぱいに合わせてください。";
+  while(scanning&&stream){
     if(!busy){
       try{
-        const blob = await grabFrame();
-        const text = await ocrBlob(blob);
-        const conf = evaluateAndShow(text, /*live=*/true);
-        if(conf==='high'){ lockCount++; } else { lockCount = 0; }
-        if(lockCount >= 2){    // 高確度が2回続いたら確定
-          scanning = false; setScanUI(false);
-          progress.textContent = "✅ 確定しました。別の資料は「もう一度スキャン」。";
-          rescan.style.display='block';
-          break;
+        const blob=await canvasToBlob(preprocessFromVideo(false));
+        const text=await ocrBlob(blob);
+        const r=evaluateAndShow(text,true);
+        // 投票（高=2, 中=1）
+        if(r.level!=='none'&&r.topName){votes[r.topName]=(votes[r.topName]||0)+(r.level==='high'?2:1);}
+        const rank=Object.entries(votes).sort((a,b)=>b[1]-a[1]);
+        if(rank.length&&rank[0][1]>=4&&(rank[0][1]-(rank[1]?.[1]||0))>=2){
+          scanning=false;setScanUI(false);
+          statusEl.textContent="✅ 確定：別の資料は「もう一度」。違うときは結果の「修正」から。";
+          rescan.style.display='block';break;
+        } else if(rank.length){
+          statusEl.textContent=`読み取り中… 有力候補「${rank[0][0]}」（${rank[0][1]}pt）`;
         }
-      }catch(e){ /* 継続 */ }
+      }catch(e){}
     }
-    await new Promise(r=>setTimeout(r, 250));
+    await new Promise(r=>setTimeout(r,220));
   }
-  scanning = false; setScanUI(false);
+  scanning=false;setScanUI(false);
 }
-function stopAutoLoop(){ scanning=false; setScanUI(false); }
+function stopAutoLoop(){scanning=false;setScanUI(false);}
 
-async function runOnce(blob){
+async function runOnce(file){
   stopAutoLoop();
-  const url=URL.createObjectURL(blob);
-  preview.src=url; preview.style.display='block'; video.style.display='none'; placeholder.style.display='none';
-  progress.textContent="読み取り中…";
-  try{ const text = await ocrBlob(blob); evaluateAndShow(text, false); progress.textContent=""; }
-  catch(e){ progress.textContent="読み取りに失敗しました: "+e.message; }
+  const url=URL.createObjectURL(file);preview.src=url;preview.style.display='block';video.style.display='none';placeholder.style.display='none';
+  statusEl.textContent="読み取り中…";
+  try{
+    const imgEl=new Image();imgEl.src=url;await imgEl.decode();
+    const blob=await canvasToBlob(preprocessFromImage(imgEl));
+    const text=await ocrBlob(blob);evaluateAndShow(text,false);statusEl.textContent="判別しました。違うときは結果の「修正」から。";
+  }catch(e){statusEl.textContent="読み取りに失敗: "+e.message;}
 }
 
-/* ---------- 判別＆表示（推測込み） ---------- */
-function evaluateAndShow(text, live){
-  lastText = text;
-  const props = scoreItems(text, state.props);
-  const docs  = scoreItems(text, state.docs);
-  lastProps = props; lastDocs = docs;
-  const conf = confidenceOf(props);
-
-  $('resultCard').classList.remove('result-hidden');
-  const propBest = props[0] ? props[0].name : "—";
-  const docBest  = docs[0] && docs[0].score>0 ? docs[0].name : (docs[0] ? docs[0].name : "—");
-
-  const noInfo = (props[0]?.score||0) <= 0;
-  $('rLabel').textContent = (conf==='high') ? "この資料は" : "推測：この資料は";
-  $('rProp').textContent = noInfo ? "推測できる手がかりが少ないです" : propBest;
-  $('rDoc').textContent  = (docs[0]?.score||0)>0 ? docBest : "資料種別は推測できません";
-
-  const confEl = $('rConf');
-  const label = {high:"確度：高", mid:"確度：中（推測）", low:"確度：低（推測）", none:"手がかり不足（要・学習）"}[conf];
-  confEl.className = "conf "+conf; confEl.textContent = label;
-
-  // 修正・学習UI（推測を初期選択）
-  fillSelect($('fixProp'), state.props, props[0]?.idx ?? 0, "物件");
-  fillSelect($('fixDoc'),  state.docs,  (docs[0]?.score>0? docs[0].idx : -1), "資料種別");
-  $('ocrText').textContent = text || "(文字を検出できませんでした)";
-
-  if(!live) $('resultCard').scrollIntoView({behavior:'smooth', block:'start'});
-  return conf;
+/* ---------- 結果表示（推測込み） ---------- */
+let lastProps=[],lastDocs=[];
+function evaluateAndShow(text,live){
+  lastText=text;
+  const props=scoreItems(text,state.props),docs=scoreItems(text,state.docs);
+  lastProps=props;lastDocs=docs;
+  const conf=confidenceOf(props);
+  resultOverlay.style.display='block';
+  const noInfo=(props[0]?.score||0)<=0;
+  $('rLabel').textContent=(conf==='high')?"判別":"推測";
+  $('rProp').textContent=noInfo?"手がかり不足":(props[0]?props[0].name:"—");
+  $('rDoc').textContent=(docs[0]?.score||0)>0?docs[0].name:"資料種別 不明";
+  const ce=$('rConf');ce.className="conf "+conf;
+  ce.textContent={high:"確度 高",mid:"確度 中",low:"確度 低",none:"要・学習"}[conf];
+  return{level:conf,topName:props[0]&&props[0].score>0?props[0].name:null};
 }
-function fillSelect(sel, items, selectedIdx, kind){
-  sel.innerHTML = `<option value="-1">（${kind}：該当なし）</option>` +
-    items.map((it,i)=>`<option value="${i}">${escapeHtml(it.name||'(名称未設定)')}</option>`).join('');
-  sel.value = String(selectedIdx);
-}
-$('learnBtn').addEventListener('click', ()=>{
-  const pi = parseInt($('fixProp').value,10);
-  const di = parseInt($('fixDoc').value,10);
-  let done = [];
-  if(pi>=0 && state.props[pi]){ learnInto(state.props[pi], lastText); done.push("物件「"+state.props[pi].name+"」"); }
-  if(di>=0 && state.docs[di]){ learnInto(state.docs[di], lastText); done.push("資料「"+state.docs[di].name+"」"); }
-  saveData();
-  if(pi>=0){ $('rProp').textContent = state.props[pi].name; $('rLabel').textContent="この資料は"; }
-  if(di>=0){ $('rDoc').textContent = state.docs[di].name; }
-  progress.textContent = done.length ? ("学習しました："+done.join(" / ")) : "学習対象が選ばれていません。";
-});
-function escapeHtml(s){ return (s||"").replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c])); }
 
-/* ---------- 設定・学習シート ---------- */
-const sheet=$('sheet'), overlay=$('overlay');
-$('openSettings').onclick = ()=>{ renderSettings(); sheet.style.display='flex'; overlay.style.display='block'; };
-function closeSheet(){ saveData(); sheet.style.display='none'; overlay.style.display='none'; }
-$('closeSettings').onclick = closeSheet; overlay.onclick = closeSheet;
+/* ---------- 修正・学習ボトムシート ---------- */
+const fixSheet=$('fixSheet'),fixOverlay=$('fixOverlay');
+function openFix(){fillSel($('fixProp'),state.props,lastProps[0]?.score>0?lastProps[0].idx:-1,"物件");fillSel($('fixDoc'),state.docs,lastDocs[0]?.score>0?lastDocs[0].idx:-1,"資料種別");fixSheet.style.display='block';fixOverlay.style.display='block';}
+function closeFix(){fixSheet.style.display='none';fixOverlay.style.display='none';}
+$('openFix').onclick=openFix;$('fixCancel').onclick=closeFix;fixOverlay.onclick=closeFix;
+function fillSel(sel,items,idx,kind){sel.innerHTML=`<option value="-1">（${kind}：該当なし）</option>`+items.map((it,i)=>`<option value="${i}">${escapeHtml(it.name||'(未設定)')}</option>`).join('');sel.value=String(idx);}
+$('learnBtn').onclick=()=>{
+  const pi=parseInt($('fixProp').value,10),di=parseInt($('fixDoc').value,10);const done=[];
+  if(pi>=0&&state.props[pi]){learnInto(state.props[pi],lastText);done.push("物件「"+state.props[pi].name+"」");$('rProp').textContent=state.props[pi].name;$('rLabel').textContent="判別";}
+  if(di>=0&&state.docs[di]){learnInto(state.docs[di],lastText);done.push("資料「"+state.docs[di].name+"」");$('rDoc').textContent=state.docs[di].name;}
+  saveData();closeFix();statusEl.textContent=done.length?("学習しました："+done.join(" / ")):"学習対象が未選択です。";
+};
+function escapeHtml(s){return(s||"").replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));}
 
-document.querySelectorAll('.tabbar button').forEach(b=>{
-  b.onclick = ()=>{
-    document.querySelectorAll('.tabbar button').forEach(x=>x.classList.remove('active'));
-    document.querySelectorAll('.tabpage').forEach(x=>x.classList.remove('active'));
-    b.classList.add('active'); $('tab-'+b.dataset.tab).classList.add('active');
-  };
-});
-
-function learnedCount(o){ return o&&o.learned ? Object.keys(o.learned).length : 0; }
+/* ---------- 設定・学習 ---------- */
+const sheet=$('sheet');
+$('openSettings').onclick=()=>{renderSettings();sheet.style.display='flex';};
+$('closeSettings').onclick=()=>{saveData();sheet.style.display='none';};
+document.querySelectorAll('.tabbar button').forEach(b=>{b.onclick=()=>{document.querySelectorAll('.tabbar button').forEach(x=>x.classList.remove('active'));document.querySelectorAll('.tabpage').forEach(x=>x.classList.remove('active'));b.classList.add('active');$('tab-'+b.dataset.tab).classList.add('active');};});
+function learnedCount(o){return o&&o.learned?Object.keys(o.learned).length:0;}
 function renderSettings(){
-  const pl=$('propList'); pl.innerHTML="";
-  state.props.forEach((p,i)=> pl.appendChild(itemRow('prop', p, i)));
-  const dl=$('docList'); dl.innerHTML="";
-  state.docs.forEach((d,i)=> dl.appendChild(itemRow('doc', d, i)));
-  fillSelect($('trainProp'), state.props, 0, "物件");
-  fillSelect($('trainDoc'),  state.docs, -1, "資料種別");
+  const pl=$('propList');pl.innerHTML="";state.props.forEach((p,i)=>pl.appendChild(itemRow('prop',p,i)));
+  const dl=$('docList');dl.innerHTML="";state.docs.forEach((d,i)=>dl.appendChild(itemRow('doc',d,i)));
+  fillSel($('trainProp'),state.props,0,"物件");fillSel($('trainDoc'),state.docs,-1,"資料種別");
 }
-function itemRow(kind, obj, i){
-  const wrap=document.createElement('div'); wrap.className="item";
-  wrap.innerHTML = `
-    <div class="lbl">${kind==='prop'?'物件名':'資料の種類'}</div>
+function itemRow(kind,obj,i){
+  const w=document.createElement('div');w.className="item";
+  w.innerHTML=`<div class="lbl">${kind==='prop'?'物件名':'資料の種類'}</div>
     <input data-k="name" value="${escapeHtml(obj.name)}" placeholder="${kind==='prop'?'例）○○マンション':'例）レントロール'}">
     <div class="lbl">見分けるキーワード（カンマ区切り）</div>
     <textarea data-k="keywords" placeholder="資料に書かれていそうな語">${escapeHtml(obj.keywords||'')}</textarea>
     <div class="meta">🧠 学習済みの語：${learnedCount(obj)}件</div>
-    <button class="clr">学習データを消去</button>
-    <button class="del">この項目を削除</button>`;
-  wrap.querySelector('input').addEventListener('input', e=> obj.name=e.target.value);
-  wrap.querySelector('textarea').addEventListener('input', e=> obj.keywords=e.target.value);
-  wrap.querySelector('.clr').onclick = ()=>{ obj.learned={}; saveData(); renderSettings(); };
-  wrap.querySelector('.del').onclick = ()=>{ (kind==='prop'?state.props:state.docs).splice(i,1); saveData(); renderSettings(); };
-  return wrap;
+    <button class="clr">学習を消去</button><button class="del">項目を削除</button>`;
+  w.querySelector('input').addEventListener('input',e=>obj.name=e.target.value);
+  w.querySelector('textarea').addEventListener('input',e=>obj.keywords=e.target.value);
+  w.querySelector('.clr').onclick=()=>{obj.learned={};saveData();renderSettings();};
+  w.querySelector('.del').onclick=()=>{(kind==='prop'?state.props:state.docs).splice(i,1);saveData();renderSettings();};
+  return w;
 }
-$('addProp').onclick=()=>{ state.props.push({name:"",keywords:"",learned:{}}); saveData(); renderSettings(); };
-$('addDoc').onclick =()=>{ state.docs.push({name:"",keywords:"",learned:{}}); saveData(); renderSettings(); };
-
-/* ---------- サンプル学習（複数写真） ---------- */
-$('trainRun').onclick = async ()=>{
-  const pi = parseInt($('trainProp').value,10);
-  const di = parseInt($('trainDoc').value,10);
-  const files = Array.from($('trainFiles').files||[]);
-  if(pi<0 && di<0){ $('trainProgress').textContent="学習させる物件か資料種別を選んでください。"; return; }
-  if(!files.length){ $('trainProgress').textContent="学習用の写真を選んでください。"; return; }
+$('addProp').onclick=()=>{state.props.push({name:"",keywords:"",learned:{}});saveData();renderSettings();};
+$('addDoc').onclick=()=>{state.docs.push({name:"",keywords:"",learned:{}});saveData();renderSettings();};
+$('trainRun').onclick=async()=>{
+  const pi=parseInt($('trainProp').value,10),di=parseInt($('trainDoc').value,10);
+  const files=Array.from($('trainFiles').files||[]);
+  if(pi<0&&di<0){$('trainProgress').textContent="物件か資料種別を選んでください。";return;}
+  if(!files.length){$('trainProgress').textContent="学習用の写真を選んでください。";return;}
   for(let k=0;k<files.length;k++){
-    $('trainProgress').textContent = `学習中… (${k+1}/${files.length})`;
-    try{
-      const text = await ocrBlob(files[k]);
-      if(pi>=0 && state.props[pi]) learnInto(state.props[pi], text);
-      if(di>=0 && state.docs[di]) learnInto(state.docs[di], text);
-    }catch(e){}
+    $('trainProgress').textContent=`学習中… (${k+1}/${files.length})`;
+    try{const url=URL.createObjectURL(files[k]);const im=new Image();im.src=url;await im.decode();const blob=await canvasToBlob(preprocessFromImage(im));const text=await ocrBlob(blob);if(pi>=0&&state.props[pi])learnInto(state.props[pi],text);if(di>=0&&state.docs[di])learnInto(state.docs[di],text);}catch(e){}
   }
-  saveData(); renderSettings();
-  $('trainFiles').value="";
-  $('trainProgress').textContent = `✅ ${files.length}枚から学習しました。`;
+  saveData();renderSettings();$('trainFiles').value="";$('trainProgress').textContent=`✅ ${files.length}枚から学習しました。`;
 };
+$('exportBtn').onclick=()=>{saveData();const b=new Blob([JSON.stringify(state,null,2)],{type:'application/json'});const a=document.createElement('a');a.href=URL.createObjectURL(b);a.download="bukken-scanner-data.json";a.click();};
+$('importBtn').onclick=()=>$('importInput').click();
+$('importInput').addEventListener('change',e=>{const f=e.target.files[0];if(!f)return;const r=new FileReader();r.onload=()=>{try{const d=JSON.parse(r.result);if(d.props&&d.docs){d.props.forEach(p=>p.learned=p.learned||{});d.docs.forEach(p=>p.learned=p.learned||{});state=d;saveData();renderSettings();alert("取り込みました。");}else alert("形式が正しくありません。");}catch(err){alert("読み込み失敗。");}};r.readAsText(f);e.target.value="";});
 
-/* ---------- バックアップ ---------- */
-$('exportBtn').onclick = ()=>{
-  saveData();
-  const blob=new Blob([JSON.stringify(state,null,2)],{type:'application/json'});
-  const a=document.createElement('a'); a.href=URL.createObjectURL(blob); a.download="bukken-scanner-data.json"; a.click();
-};
-$('importBtn').onclick = ()=> $('importInput').click();
-$('importInput').addEventListener('change', e=>{
-  const f=e.target.files[0]; if(!f) return;
-  const r=new FileReader();
-  r.onload=()=>{ try{ const d=JSON.parse(r.result); if(d.props&&d.docs){ d.props.forEach(p=>p.learned=p.learned||{}); d.docs.forEach(p=>p.learned=p.learned||{}); state=d; saveData(); renderSettings(); alert("取り込みました。"); } else alert("形式が正しくありません。"); }catch(err){ alert("読み込みに失敗しました。"); } };
-  r.readAsText(f); e.target.value="";
-});
-
-// テスト用にロジックを公開
-if(typeof window!=='undefined'){ window.__scanner = { normalizeText, extractTerms, learnInto, computeIDF, scoreItems, confidenceOf, splitKeywords }; }
+if(typeof window!=='undefined'){window.__scanner={normalizeText,extractTerms,learnInto,computeIDF,scoreItems,confidenceOf,splitKeywords,fuzzySim};}
 </script>
 </body>
 </html>
