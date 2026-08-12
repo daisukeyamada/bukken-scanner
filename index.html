@@ -1,0 +1,416 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<meta name="theme-color" content="#0f172a">
+<title>物件資料スキャナー</title>
+<style>
+  :root{
+    --bg:#0f172a; --panel:#1e293b; --panel2:#273449; --line:#334155;
+    --text:#e2e8f0; --muted:#94a3b8; --accent:#38bdf8; --accent2:#0ea5e9;
+    --good:#22c55e; --warn:#f59e0b; --bad:#ef4444; --radius:14px;
+  }
+  *{box-sizing:border-box;-webkit-tap-highlight-color:transparent;}
+  html,body{margin:0;padding:0;}
+  body{
+    font-family:-apple-system,BlinkMacSystemFont,"Hiragino Sans","Noto Sans JP",sans-serif;
+    background:var(--bg); color:var(--text); line-height:1.6;
+    padding:env(safe-area-inset-top) env(safe-area-inset-right) env(safe-area-inset-bottom) env(safe-area-inset-left);
+  }
+  header{
+    position:sticky; top:0; z-index:10; background:rgba(15,23,42,.92);
+    backdrop-filter:blur(8px); border-bottom:1px solid var(--line);
+    display:flex; align-items:center; justify-content:space-between; padding:12px 16px;
+  }
+  header h1{font-size:17px; margin:0; font-weight:700; letter-spacing:.02em;}
+  header .sub{font-size:11px; color:var(--muted); font-weight:400;}
+  .icon-btn{
+    background:var(--panel2); border:1px solid var(--line); color:var(--text);
+    border-radius:10px; padding:8px 12px; font-size:13px; cursor:pointer;
+  }
+  main{max-width:640px; margin:0 auto; padding:16px;}
+  .card{background:var(--panel); border:1px solid var(--line); border-radius:var(--radius); padding:16px; margin-bottom:16px;}
+  .camera-wrap{position:relative; background:#000; border-radius:var(--radius); overflow:hidden; aspect-ratio:3/4; display:flex; align-items:center; justify-content:center;}
+  #video,#preview{width:100%; height:100%; object-fit:cover; display:none;}
+  .camera-placeholder{color:var(--muted); font-size:14px; text-align:center; padding:24px;}
+  .btn{
+    display:block; width:100%; border:none; border-radius:12px; padding:15px;
+    font-size:16px; font-weight:700; cursor:pointer; margin-top:12px;
+    background:linear-gradient(180deg,var(--accent),var(--accent2)); color:#04283a;
+  }
+  .btn:active{transform:translateY(1px);}
+  .btn.secondary{background:var(--panel2); color:var(--text); border:1px solid var(--line); font-weight:600;}
+  .btn:disabled{opacity:.5; cursor:not-allowed;}
+  .row{display:flex; gap:10px;}
+  .row .btn{margin-top:12px;}
+  .progress{margin-top:12px; font-size:13px; color:var(--muted); min-height:20px;}
+  .bar{height:6px; background:var(--panel2); border-radius:99px; overflow:hidden; margin-top:6px; display:none;}
+  .bar>div{height:100%; width:0%; background:var(--accent); transition:width .2s;}
+  /* result */
+  .result-hidden{display:none;}
+  .result-main{text-align:center; padding:8px 0 4px;}
+  .result-label{font-size:12px; color:var(--muted); letter-spacing:.1em;}
+  .result-property{font-size:24px; font-weight:800; margin:4px 0;}
+  .result-doc{font-size:18px; font-weight:700; color:var(--accent);}
+  .conf{display:inline-block; font-size:12px; padding:3px 10px; border-radius:99px; margin-top:8px; font-weight:700;}
+  .conf.high{background:rgba(34,197,94,.15); color:var(--good);}
+  .conf.mid{background:rgba(245,158,11,.15); color:var(--warn);}
+  .conf.low{background:rgba(239,68,68,.15); color:var(--bad);}
+  .candidates{margin-top:14px; border-top:1px solid var(--line); padding-top:12px;}
+  .candidates h3{font-size:12px; color:var(--muted); margin:0 0 8px; font-weight:600;}
+  .cand{display:flex; justify-content:space-between; align-items:center; padding:10px 12px; background:var(--panel2); border-radius:10px; margin-bottom:8px; cursor:pointer; border:1px solid transparent;}
+  .cand:active{border-color:var(--accent);}
+  .cand .nm{font-weight:600;}
+  .cand .sc{font-size:12px; color:var(--muted);}
+  details.ocr{margin-top:12px;}
+  details.ocr summary{font-size:12px; color:var(--muted); cursor:pointer;}
+  details.ocr pre{white-space:pre-wrap; word-break:break-all; font-size:11px; color:var(--muted); background:#0b1220; padding:10px; border-radius:8px; max-height:160px; overflow:auto;}
+  /* settings panel */
+  .overlay{position:fixed; inset:0; background:rgba(2,6,23,.7); z-index:20; display:none;}
+  .sheet{position:fixed; inset:0; z-index:21; background:var(--bg); display:none; flex-direction:column;}
+  .sheet header{position:sticky;}
+  .sheet-body{overflow:auto; padding:16px; max-width:640px; margin:0 auto; width:100%;}
+  .item{background:var(--panel); border:1px solid var(--line); border-radius:12px; padding:12px; margin-bottom:10px;}
+  .item input, .item textarea{
+    width:100%; background:var(--panel2); border:1px solid var(--line); color:var(--text);
+    border-radius:8px; padding:10px; font-size:15px; margin-top:6px; font-family:inherit;
+  }
+  .item textarea{min-height:46px; resize:vertical;}
+  .item .lbl{font-size:11px; color:var(--muted); margin-top:8px;}
+  .item .del{background:none; border:none; color:var(--bad); font-size:13px; cursor:pointer; margin-top:8px; padding:4px 0;}
+  .section-title{font-size:13px; font-weight:700; color:var(--muted); margin:20px 0 8px; letter-spacing:.05em;}
+  .hint{font-size:12px; color:var(--muted); background:var(--panel); border:1px dashed var(--line); border-radius:10px; padding:12px; margin-bottom:12px;}
+  .tag{display:inline-block; background:var(--panel2); border:1px solid var(--line); border-radius:6px; padding:1px 6px; font-size:11px; margin:2px 2px 0 0;}
+</style>
+</head>
+<body>
+<header>
+  <div>
+    <h1>物件資料スキャナー</h1>
+    <div class="sub">カメラで撮って物件と資料を判別</div>
+  </div>
+  <button class="icon-btn" id="openSettings">⚙ 設定</button>
+</header>
+
+<main>
+  <div class="card">
+    <div class="camera-wrap">
+      <video id="video" playsinline muted></video>
+      <img id="preview" alt="preview">
+      <div class="camera-placeholder" id="placeholder">「カメラを起動」を押すか、<br>「写真を撮る／選ぶ」で資料を読み取ります。</div>
+    </div>
+
+    <div class="row">
+      <button class="btn secondary" id="startCam">📷 カメラを起動</button>
+      <button class="btn" id="shoot" disabled>読み取る</button>
+    </div>
+    <button class="btn secondary" id="pickFile">🖼 写真を撮る／選ぶ</button>
+    <input type="file" id="fileInput" accept="image/*" capture="environment" style="display:none">
+
+    <div class="progress" id="progress"></div>
+    <div class="bar" id="bar"><div></div></div>
+  </div>
+
+  <div class="card result-hidden" id="resultCard">
+    <div class="result-main">
+      <div class="result-label">この資料は</div>
+      <div class="result-property" id="rProp">—</div>
+      <div class="result-doc" id="rDoc">—</div>
+      <div><span class="conf" id="rConf"></span></div>
+    </div>
+    <div class="candidates" id="candWrap" style="display:none">
+      <h3>他の候補（タップで確定）</h3>
+      <div id="candList"></div>
+    </div>
+    <details class="ocr">
+      <summary>読み取った文字を確認</summary>
+      <pre id="ocrText"></pre>
+    </details>
+  </div>
+</main>
+
+<!-- Settings sheet -->
+<div class="overlay" id="overlay"></div>
+<div class="sheet" id="sheet">
+  <header>
+    <div><h1>設定</h1><div class="sub">物件・資料の種類を登録</div></div>
+    <button class="icon-btn" id="closeSettings">閉じる</button>
+  </header>
+  <div class="sheet-body">
+    <div class="hint">
+      物件ごとに「見分けるためのキーワード」を登録します（物件名・住所・部屋番号・地番など、資料に書かれていそうな語をカンマ区切りで）。撮影した書類の文字とキーワードを照合して物件を当てます。データはこの端末に保存されます。
+    </div>
+
+    <div class="section-title">物件リスト</div>
+    <div id="propList"></div>
+    <button class="btn secondary" id="addProp">＋ 物件を追加</button>
+
+    <div class="section-title">資料の種類</div>
+    <div id="docList"></div>
+    <button class="btn secondary" id="addDoc">＋ 資料の種類を追加</button>
+
+    <div class="section-title">バックアップ</div>
+    <div class="row">
+      <button class="btn secondary" id="exportBtn">💾 書き出し</button>
+      <button class="btn secondary" id="importBtn">📂 取り込み</button>
+    </div>
+    <input type="file" id="importInput" accept="application/json" style="display:none">
+    <div style="height:40px"></div>
+  </div>
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/tesseract.js@5/dist/tesseract.min.js"></script>
+<script>
+/* ============================================================
+   物件資料スキャナー — 端末内OCR + キーワード照合（サーバー不要）
+   ============================================================ */
+
+/* ---------- 既定データ ---------- */
+const DEFAULT_PROPS = [
+  { name:"サンプルマンション函館", keywords:"サンプルマンション函館, 函館市, 若松町, 501" },
+  { name:"サンプルアパート大和",   keywords:"サンプルアパート大和, 大和市, 中央林間" },
+];
+const DEFAULT_DOCS = [
+  { name:"マイソク／物件概要書", keywords:"マイソク, 物件概要, 販売図面, 表面利回り, 満室想定" },
+  { name:"レントロール",         keywords:"レントロール, rentroll, 賃料明細, 入居状況, 契約賃料" },
+  { name:"重要事項説明書",       keywords:"重要事項説明, 重説, 宅地建物取引" },
+  { name:"売買契約書",           keywords:"売買契約, 不動産売買契約, 手付金" },
+  { name:"登記事項証明書／登記簿", keywords:"登記事項証明, 登記簿, 全部事項, 甲区, 乙区, 所有権" },
+  { name:"固定資産税関係",       keywords:"固定資産, 評価証明, 公課証明, 課税明細, 名寄帳" },
+  { name:"間取り図／建物図面",   keywords:"間取, 平面図, 建物図面, 配置図, 求積図" },
+  { name:"検査済証／確認済証",   keywords:"検査済証, 確認済証, 建築確認, 確認済" },
+];
+
+/* ---------- 保存 ---------- */
+const STORE_KEY = "bukken-scanner-v1";
+function loadData(){
+  try{
+    const raw = localStorage.getItem(STORE_KEY);
+    if(raw){ const d = JSON.parse(raw); if(d.props && d.docs) return d; }
+  }catch(e){}
+  return { props:[...DEFAULT_PROPS], docs:[...DEFAULT_DOCS] };
+}
+function saveData(){
+  try{ localStorage.setItem(STORE_KEY, JSON.stringify(state)); }catch(e){}
+}
+let state = loadData();
+
+/* ---------- 照合ロジック（純粋関数：テスト可能） ---------- */
+function normalizeText(s){
+  if(!s) return "";
+  // 全角→半角などを正規化し、空白・記号を除去、英字は小文字化
+  let t = s.normalize("NFKC").toLowerCase();
+  t = t.replace(/[\s　]/g, "");
+  t = t.replace(/[.,、。・:：;；\-ー_/\\|()（）\[\]【】「」]/g, "");
+  return t;
+}
+function splitKeywords(str){
+  return (str||"").split(/[,、\n]/).map(k=>k.trim()).filter(Boolean);
+}
+// text: OCR全文, items: [{name, keywords}] → スコア降順の候補配列
+function scoreItems(text, items){
+  const norm = normalizeText(text);
+  const results = items.map((it, idx)=>{
+    const kws = splitKeywords(it.keywords);
+    // 物件名/資料名そのものも暗黙のキーワードに加える
+    if(it.name) kws.push(it.name);
+    let score = 0; const hits = [];
+    const seen = new Set();
+    for(const kw of kws){
+      const nk = normalizeText(kw);
+      if(!nk || nk.length < 2 || seen.has(nk)) continue;
+      seen.add(nk);
+      if(norm.includes(nk)){
+        score += nk.length;      // 長い語ほど固有性が高い＝加点大
+        hits.push(kw);
+      }
+    }
+    return { name:it.name, idx, score, hits };
+  });
+  results.sort((a,b)=> b.score - a.score);
+  return results;
+}
+// 信頼度: 1位のスコアと2位との差から算出
+function confidenceOf(results){
+  if(!results.length || results[0].score === 0) return "low";
+  const top = results[0].score;
+  const second = results[1] ? results[1].score : 0;
+  if(top >= 6 && top - second >= 3) return "high";
+  if(top >= 3) return "mid";
+  return "low";
+}
+
+/* ---------- 画面：カメラ & OCR ---------- */
+const video = document.getElementById('video');
+const preview = document.getElementById('preview');
+const placeholder = document.getElementById('placeholder');
+const startCam = document.getElementById('startCam');
+const shoot = document.getElementById('shoot');
+const pickFile = document.getElementById('pickFile');
+const fileInput = document.getElementById('fileInput');
+const progress = document.getElementById('progress');
+const bar = document.getElementById('bar');
+const barFill = bar.firstElementChild;
+let stream = null;
+let busy = false;
+
+startCam.addEventListener('click', async ()=>{
+  try{
+    stream = await navigator.mediaDevices.getUserMedia({ video:{ facingMode:{ ideal:"environment" } }, audio:false });
+    video.srcObject = stream; await video.play();
+    video.style.display='block'; preview.style.display='none'; placeholder.style.display='none';
+    shoot.disabled = false;
+    startCam.textContent = "🔄 カメラ再起動";
+  }catch(e){
+    progress.textContent = "カメラを起動できませんでした。『写真を撮る／選ぶ』をお使いください。("+e.name+")";
+  }
+});
+
+shoot.addEventListener('click', ()=>{
+  if(!stream || busy) return;
+  const canvas = document.createElement('canvas');
+  canvas.width = video.videoWidth; canvas.height = video.videoHeight;
+  canvas.getContext('2d').drawImage(video,0,0);
+  canvas.toBlob(b=>runOCR(b), 'image/jpeg', 0.92);
+});
+
+pickFile.addEventListener('click', ()=> fileInput.click());
+fileInput.addEventListener('change', e=>{
+  const f = e.target.files[0]; if(f) runOCR(f);
+  fileInput.value = "";
+});
+
+function showPreview(blob){
+  const url = URL.createObjectURL(blob);
+  preview.src = url; preview.style.display='block';
+  video.style.display='none'; placeholder.style.display='none';
+}
+
+let worker = null;
+async function getWorker(){
+  if(worker) return worker;
+  progress.textContent = "文字認識エンジンを準備中…（初回のみ少し時間がかかります）";
+  worker = await Tesseract.createWorker(['jpn','eng'], 1, {
+    logger: m=>{
+      if(m.status === 'recognizing text'){
+        bar.style.display='block';
+        barFill.style.width = Math.round(m.progress*100)+"%";
+        progress.textContent = "読み取り中… "+Math.round(m.progress*100)+"%";
+      }
+    }
+  });
+  return worker;
+}
+
+async function runOCR(blob){
+  if(busy) return; busy = true; shoot.disabled = true;
+  showPreview(blob);
+  document.getElementById('resultCard').classList.add('result-hidden');
+  try{
+    const w = await getWorker();
+    const { data:{ text } } = await w.recognize(blob);
+    bar.style.display='none'; barFill.style.width="0%";
+    progress.textContent = "";
+    showResult(text);
+  }catch(e){
+    progress.textContent = "読み取りに失敗しました: "+e.message;
+  }finally{
+    busy = false; if(stream) shoot.disabled = false;
+  }
+}
+
+/* ---------- 結果表示 ---------- */
+function showResult(text){
+  const props = scoreItems(text, state.props);
+  const docs  = scoreItems(text, state.docs);
+  const conf  = confidenceOf(props);
+
+  document.getElementById('resultCard').classList.remove('result-hidden');
+  const propBest = props[0] && props[0].score>0 ? props[0].name : "判別できませんでした";
+  const docBest  = docs[0]  && docs[0].score>0  ? docs[0].name  : "資料種別が不明";
+  document.getElementById('rProp').textContent = propBest;
+  document.getElementById('rDoc').textContent  = docBest;
+
+  const confEl = document.getElementById('rConf');
+  confEl.className = "conf "+conf;
+  confEl.textContent = conf==="high" ? "確度：高" : conf==="mid" ? "確度：中" : "確度：低（手動で確認を）";
+
+  // 候補
+  const candWrap = document.getElementById('candWrap');
+  const candList = document.getElementById('candList');
+  candList.innerHTML = "";
+  const others = props.filter(p=>p.score>0).slice(0,4);
+  if(others.length > 1){
+    candWrap.style.display = "block";
+    others.forEach(p=>{
+      const div = document.createElement('div');
+      div.className = "cand";
+      div.innerHTML = `<span class="nm">${escapeHtml(p.name)}</span><span class="sc">一致 ${p.hits.length}語</span>`;
+      div.onclick = ()=>{ document.getElementById('rProp').textContent = p.name; };
+      candList.appendChild(div);
+    });
+  }else{
+    candWrap.style.display = "none";
+  }
+  document.getElementById('ocrText').textContent = text || "(文字を検出できませんでした)";
+  document.getElementById('resultCard').scrollIntoView({behavior:'smooth', block:'start'});
+}
+function escapeHtml(s){ return s.replace(/[&<>"']/g, c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c])); }
+
+/* ---------- 設定シート ---------- */
+const sheet = document.getElementById('sheet');
+const overlay = document.getElementById('overlay');
+document.getElementById('openSettings').onclick = ()=>{ renderSettings(); sheet.style.display='flex'; overlay.style.display='block'; };
+function closeSheet(){ saveFromUI(); sheet.style.display='none'; overlay.style.display='none'; }
+document.getElementById('closeSettings').onclick = closeSheet;
+overlay.onclick = closeSheet;
+
+function renderSettings(){
+  const pl = document.getElementById('propList'); pl.innerHTML="";
+  state.props.forEach((p,i)=> pl.appendChild(itemRow('prop', p, i)));
+  const dl = document.getElementById('docList'); dl.innerHTML="";
+  state.docs.forEach((d,i)=> dl.appendChild(itemRow('doc', d, i)));
+}
+function itemRow(kind, obj, i){
+  const wrap = document.createElement('div'); wrap.className="item";
+  wrap.innerHTML = `
+    <div class="lbl">${kind==='prop'?'物件名':'資料の種類'}</div>
+    <input data-k="name" value="${escapeAttr(obj.name)}" placeholder="${kind==='prop'?'例）○○マンション':'例）レントロール'}">
+    <div class="lbl">見分けるキーワード（カンマ区切り）</div>
+    <textarea data-k="keywords" placeholder="資料に書かれていそうな語を入力">${escapeAttr(obj.keywords)}</textarea>
+    <button class="del">この項目を削除</button>`;
+  wrap.querySelector('input').addEventListener('input', e=> obj.name = e.target.value);
+  wrap.querySelector('textarea').addEventListener('input', e=> obj.keywords = e.target.value);
+  wrap.querySelector('.del').onclick = ()=>{
+    (kind==='prop'?state.props:state.docs).splice(i,1); saveData(); renderSettings();
+  };
+  return wrap;
+}
+function escapeAttr(s){ return (s||"").replace(/"/g,'&quot;'); }
+function saveFromUI(){ saveData(); }
+
+document.getElementById('addProp').onclick = ()=>{ state.props.push({name:"",keywords:""}); saveData(); renderSettings(); };
+document.getElementById('addDoc').onclick  = ()=>{ state.docs.push({name:"",keywords:""}); saveData(); renderSettings(); };
+
+/* ---------- バックアップ ---------- */
+document.getElementById('exportBtn').onclick = ()=>{
+  saveFromUI();
+  const blob = new Blob([JSON.stringify(state,null,2)], {type:'application/json'});
+  const a = document.createElement('a');
+  a.href = URL.createObjectURL(blob); a.download = "bukken-scanner-data.json"; a.click();
+};
+const importInput = document.getElementById('importInput');
+document.getElementById('importBtn').onclick = ()=> importInput.click();
+importInput.addEventListener('change', e=>{
+  const f = e.target.files[0]; if(!f) return;
+  const r = new FileReader();
+  r.onload = ()=>{ try{ const d=JSON.parse(r.result); if(d.props&&d.docs){ state=d; saveData(); renderSettings(); alert("取り込みました。"); } else alert("形式が正しくありません。"); }catch(err){ alert("読み込みに失敗しました。"); } };
+  r.readAsText(f); importInput.value="";
+});
+
+// テスト用にロジックを公開
+if(typeof window!=='undefined'){ window.__scanner = { normalizeText, scoreItems, confidenceOf, splitKeywords }; }
+</script>
+</body>
+</html>
